@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WORKSHOP — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<style>
+  :root{
+    --canvas:#EAE3D3; --ink:#211D17; --rust:#C1442A; --denim:#2F4858;
+    --card:#F5F1E6; --line:#211D17; --muted:#5B5346;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--canvas);color:var(--ink);
+    font-family:'IBM Plex Sans',sans-serif;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .wrap{max-width:760px;margin:0 auto;padding:0 20px 60px;}
+  header{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:22px 0;border-bottom:2px solid var(--line);margin-bottom:30px;
+  }
+  .brand{font-family:'Archivo Black',sans-serif;font-size:22px;}
+  .brand span{color:var(--rust);}
+  #logoutBtn{
+    background:none;border:1.5px solid var(--line);color:var(--ink);
+    padding:8px 16px;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px;
+  }
+
+  /* login */
+  .login-box{
+    max-width:360px;margin:80px auto;background:var(--card);
+    border:2px solid var(--line);border-radius:8px;padding:32px;
+  }
+  .login-box h2{font-family:'Archivo Black',sans-serif;margin:0 0 20px;font-size:22px;}
+  .login-box label{display:block;font-size:13px;font-family:'IBM Plex Mono',monospace;margin:12px 0 5px;color:var(--muted);}
+  .login-box input{
+    width:100%;padding:11px;border:1.5px solid var(--line);border-radius:4px;
+    background:var(--canvas);color:var(--ink);font-size:14px;
+  }
+  .login-box button{
+    width:100%;margin-top:20px;background:var(--rust);color:#F5F1E6;border:none;
+    padding:12px;border-radius:4px;font-weight:600;font-size:15px;cursor:pointer;
+  }
+  #loginError{color:var(--rust);font-size:13px;margin-top:10px;display:none;}
+
+  /* form */
+  .card{background:var(--card);border:1.5px dashed var(--line);border-radius:8px;padding:24px;margin-bottom:30px;}
+  .card h2{font-family:'Archivo Black',sans-serif;font-size:20px;margin:0 0 18px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:13px;font-family:'IBM Plex Mono',monospace;margin-bottom:6px;color:var(--muted);}
+  .field input[type=text],.field input[type=number]{
+    width:100%;padding:10px;border:1.5px solid var(--line);border-radius:4px;
+    background:var(--canvas);color:var(--ink);font-size:14px;
+  }
+  .field input[type=color]{width:60px;height:40px;border:1.5px solid var(--line);border-radius:4px;padding:2px;background:var(--canvas);cursor:pointer;}
+  .checkbox-row{display:flex;align-items:center;gap:8px;}
+  .checkbox-row input{width:18px;height:18px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .actions-row{display:flex;gap:10px;margin-top:8px;}
+  .btn-primary{background:var(--rust);color:#F5F1E6;border:none;padding:12px 20px;border-radius:4px;font-weight:600;font-size:14px;cursor:pointer;}
+  .btn-ghost{background:none;border:1.5px solid var(--line);color:var(--ink);padding:12px 20px;border-radius:4px;font-weight:600;font-size:14px;cursor:pointer;}
+  #formMsg{font-size:13px;margin-top:10px;font-family:'IBM Plex Mono',monospace;}
+
+  /* product list */
+  .list-item{
+    display:flex;align-items:center;gap:14px;background:var(--card);
+    border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:10px;
+  }
+  .swatch-sm{width:44px;height:44px;border-radius:4px;flex-shrink:0;}
+  .list-item .info{flex:1;}
+  .list-item h4{margin:0;font-size:15px;}
+  .list-item .meta{font-size:12px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  .list-item .actions{display:flex;gap:8px;}
+  .list-item button{border:1.5px solid var(--line);background:none;padding:6px 12px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;}
+  .list-item .del{border-color:var(--rust);color:var(--rust);}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-box">
+  <h2>WORKSHOP Admin</h2>
+  <label>Email</label>
+  <input type="text" id="loginEmail" placeholder="you@example.com">
+  <label>Password</label>
+  <input type="text" id="loginPassword" placeholder="Your password">
+  <button onclick="doLogin()">Log in</button>
+  <div id="loginError"></div>
+</div>
+
+<div id="adminScreen" class="wrap" style="display:none;">
+  <header>
+    <div class="brand">WORK<span>SHOP</span> <span class="mono" style="font-size:13px;color:var(--muted);">/admin</span></div>
+    <button id="logoutBtn" onclick="doLogout()">Log out</button>
+  </header>
+
+  <div class="card">
+    <h2 id="formTitle">Add a new product</h2>
+    <div class="field">
+      <label>Product name</label>
+      <input type="text" id="pName" placeholder="e.g. Black Hoodie">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Price (with ₹)</label>
+        <input type="text" id="pPrice" placeholder="e.g. ₹699">
+      </div>
+      <div class="field">
+        <label>Badge (optional)</label>
+        <input type="text" id="pBadge" placeholder="NEW / TRENDING / etc">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Product photo</label>
+        <input type="file" id="pImageFile" accept="image/*" onchange="handleImageUpload(this)">
+        <div id="uploadStatus" class="mono" style="font-size:12px;margin-top:6px;color:var(--muted);"></div>
+        <img id="pImagePreview" style="display:none;max-width:110px;margin-top:8px;border-radius:4px;border:1.5px solid var(--line);">
+      </div>
+      <div class="field">
+        <label>Fallback color (shown if no photo)</label>
+        <input type="color" id="pColor" value="#2F4858">
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Display order (lower = shows first)</label>
+        <input type="number" id="pOrder" value="1">
+      </div>
+      <div></div>
+    </div>
+    <div class="field checkbox-row">
+      <input type="checkbox" id="pCustom">
+      <label style="margin:0;">Customer can request a custom design/text for this item</label>
+    </div>
+    <div class="actions-row">
+      <button class="btn-primary" onclick="saveProduct()">Save product</button>
+      <button class="btn-ghost" id="cancelEditBtn" style="display:none;" onclick="resetForm()">Cancel edit</button>
+    </div>
+    <div id="formMsg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Your products</h2>
+    <div id="productList"><p class="mono" style="color:var(--muted);">Loading…</p></div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAjeG6w4DMBnqaqTNG0YK3LNVWI6uc3YLY",
+  authDomain: "workshop-store-cce92.firebaseapp.com",
+  projectId: "workshop-store-cce92",
+  storageBucket: "workshop-store-cce92.firebasestorage.app",
+  messagingSenderId: "221732526480",
+  appId: "1:221732526480:web:d38cb5939c7de05d1a3b15"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+let editingId = null;
+let uploadedImageUrl = '';
+const IMGBB_API_KEY = '4228514197fac9b1af48ecd562ef92f7';
+
+function handleImageUpload(input){
+  const file = input.files[0];
+  if(!file) return;
+  const status = document.getElementById('uploadStatus');
+  const preview = document.getElementById('pImagePreview');
+  status.style.color = 'var(--muted)';
+  status.textContent = 'Uploading…';
+
+  const formData = new FormData();
+  formData.append('image', file);
+
+  fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method:'POST', body: formData })
+    .then(res => res.json())
+    .then(data => {
+      if(data.success){
+        uploadedImageUrl = data.data.url;
+        status.style.color = 'var(--denim)';
+        status.textContent = 'Uploaded ✓';
+        preview.src = uploadedImageUrl;
+        preview.style.display = 'block';
+      } else {
+        status.style.color = 'var(--rust)';
+        status.textContent = 'Upload failed, try again.';
+      }
+    })
+    .catch(err => {
+      status.style.color = 'var(--rust)';
+      status.textContent = 'Upload error: ' + err.message;
+    });
+}
+
+auth.onAuthStateChanged(user => {
+  document.getElementById('loginScreen').style.display = user ? 'none' : 'block';
+  document.getElementById('adminScreen').style.display = user ? 'block' : 'none';
+  if(user) loadProducts();
+});
+
+function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errBox = document.getElementById('loginError');
+  errBox.style.display = 'none';
+  auth.signInWithEmailAndPassword(email, password)
+    .catch(err => {
+      errBox.textContent = 'Login failed: ' + err.message;
+      errBox.style.display = 'block';
+    });
+}
+
+function doLogout(){
+  auth.signOut();
+}
+
+function resetForm(){
+  editingId = null;
+  document.getElementById('formTitle').textContent = 'Add a new product';
+  document.getElementById('pName').value = '';
+  document.getElementById('pPrice').value = '';
+  document.getElementById('pBadge').value = '';
+  document.getElementById('pImageFile').value = '';
+  document.getElementById('uploadStatus').textContent = '';
+  document.getElementById('pImagePreview').style.display = 'none';
+  uploadedImageUrl = '';
+  document.getElementById('pColor').value = '#2F4858';
+  document.getElementById('pOrder').value = 1;
+  document.getElementById('pCustom').checked = false;
+  document.getElementById('cancelEditBtn').style.display = 'none';
+  document.getElementById('formMsg').textContent = '';
+}
+
+function saveProduct(){
+  const name = document.getElementById('pName').value.trim();
+  const price = document.getElementById('pPrice').value.trim();
+  const badge = document.getElementById('pBadge').value.trim();
+  const image = uploadedImageUrl;
+  const color = document.getElementById('pColor').value;
+  const order = Number(document.getElementById('pOrder').value) || 0;
+  const customisable = document.getElementById('pCustom').checked;
+  const msg = document.getElementById('formMsg');
+
+  if(!name || !price){
+    msg.style.color = 'var(--rust)';
+    msg.textContent = 'Name and price are required.';
+    return;
+  }
+
+  const data = { name, price, badge, image, color, order, customisable };
+  const promise = editingId
+    ? db.collection('products').doc(editingId).update(data)
+    : db.collection('products').add(data);
+
+  promise.then(() => {
+    msg.style.color = 'var(--denim)';
+    msg.textContent = editingId ? 'Product updated!' : 'Product added!';
+    resetForm();
+    loadProducts();
+  }).catch(err => {
+    msg.style.color = 'var(--rust)';
+    msg.textContent = 'Error: ' + err.message;
+  });
+}
+
+function editProduct(id, p){
+  editingId = id;
+  document.getElementById('formTitle').textContent = 'Editing: ' + p.name;
+  document.getElementById('pName').value = p.name || '';
+  document.getElementById('pPrice').value = p.price || '';
+  document.getElementById('pBadge').value = p.badge || '';
+  uploadedImageUrl = p.image || '';
+  const preview = document.getElementById('pImagePreview');
+  if(uploadedImageUrl){
+    preview.src = uploadedImageUrl;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+  document.getElementById('uploadStatus').textContent = uploadedImageUrl ? 'Current photo shown below' : '';
+  document.getElementById('pColor').value = /^#[0-9A-Fa-f]{6}$/.test(p.color) ? p.color : '#2F4858';
+  document.getElementById('pOrder').value = p.order || 1;
+  document.getElementById('pCustom').checked = !!p.customisable;
+  document.getElementById('cancelEditBtn').style.display = 'inline-block';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function deleteProduct(id, name){
+  if(!confirm('Delete "' + name + '"? This cannot be undone.')) return;
+  db.collection('products').doc(id).delete().then(loadProducts);
+}
+
+function loadProducts(){
+  const list = document.getElementById('productList');
+  db.collection('products').orderBy('order').get().then(snapshot => {
+    if(snapshot.empty){
+      list.innerHTML = '<p class="mono" style="color:var(--muted);">No products yet — add your first one above.</p>';
+      return;
+    }
+    list.innerHTML = '';
+    snapshot.forEach(doc => {
+      const p = doc.data();
+      const bg = /^#[0-9A-Fa-f]{6}$/.test(p.color) ? p.color : '#2F4858';
+      const thumb = p.image
+        ? `<img class="swatch-sm" src="${p.image}" style="object-fit:cover;" onerror="this.style.background='${bg}';this.src='';">`
+        : `<div class="swatch-sm" style="background:${bg};"></div>`;
+      list.insertAdjacentHTML('beforeend', `
+        <div class="list-item">
+          ${thumb}
+          <div class="info">
+            <h4>${p.name}</h4>
+            <div class="meta">${p.price} ${p.badge ? '· ' + p.badge : ''} ${p.customisable ? '· customisable' : ''} · order ${p.order}</div>
+          </div>
+          <div class="actions">
+            <button onclick='editProduct("${doc.id}", ${JSON.stringify(p).replace(/'/g, "&apos;")})'>Edit</button>
+            <button class="del" onclick="deleteProduct('${doc.id}', '${(p.name||'').replace(/'/g,"\\'")}')">Delete</button>
+          </div>
+        </div>`);
+    });
+  });
+}
+
+document.getElementById('loginPassword').addEventListener('keydown', e => {
+  if(e.key === 'Enter') doLogin();
+});
+</script>
+
+</body>
+</html>
