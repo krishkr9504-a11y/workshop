@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://krishkr9504-a11y.github.io/workshop-store/sitemap.xml
