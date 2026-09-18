@@ -156,8 +156,10 @@
       </div>
     </div>
     <div class="field">
-      <label>Extra photo links (optional, comma separated)</label>
-      <input type="text" id="pExtraImages" placeholder="paste additional image URLs, comma separated">
+      <label>Extra photos (optional)</label>
+      <input type="file" id="pExtraImageFiles" accept="image/*" multiple onchange="handleExtraImagesUpload(this)">
+      <div id="extraUploadStatus" class="mono" style="font-size:12px;margin-top:6px;color:var(--muted);"></div>
+      <div id="extraImagePreviews" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"></div>
     </div>
     <div class="actions-row">
       <button class="btn-primary" onclick="saveProduct()">Save product</button>
@@ -187,6 +189,7 @@ const auth = firebase.auth();
 
 let editingId = null;
 let uploadedImageUrl = '';
+let uploadedExtraImages = [];
 const IMGBB_API_KEY = '4228514197fac9b1af48ecd562ef92f7';
 
 function handleImageUpload(input){
@@ -218,6 +221,44 @@ function handleImageUpload(input){
       status.style.color = 'var(--rust)';
       status.textContent = 'Upload error: ' + err.message;
     });
+}
+
+function handleExtraImagesUpload(input){
+  const files = Array.from(input.files || []);
+  if(!files.length) return;
+  const status = document.getElementById('extraUploadStatus');
+  status.style.color = 'var(--muted)';
+  status.textContent = `Uploading ${files.length} photo(s)…`;
+
+  const uploads = files.map(file => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method:'POST', body: formData })
+      .then(res => res.json())
+      .catch(() => ({ success:false }));
+  });
+
+  Promise.all(uploads).then(results => {
+    let ok = 0;
+    results.forEach(r => { if(r.success){ uploadedExtraImages.push(r.data.url); ok++; } });
+    status.style.color = ok === files.length ? 'var(--denim)' : 'var(--rust)';
+    status.textContent = `${ok}/${files.length} uploaded ✓`;
+    renderExtraPreviews();
+    input.value = '';
+  });
+}
+
+function renderExtraPreviews(){
+  const wrap = document.getElementById('extraImagePreviews');
+  wrap.innerHTML = uploadedExtraImages.map((url, i) => `
+    <div style="position:relative;">
+      <img src="${url}" style="width:60px;height:60px;object-fit:cover;border-radius:4px;border:1.5px solid var(--line);">
+      <button type="button" onclick="removeExtraImage(${i})" style="position:absolute;top:-6px;right:-6px;background:var(--rust);color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1;padding:0;">×</button>
+    </div>`).join('');
+}
+function removeExtraImage(i){
+  uploadedExtraImages.splice(i,1);
+  renderExtraPreviews();
 }
 
 auth.onAuthStateChanged(user => {
@@ -259,7 +300,10 @@ function resetForm(){
   document.getElementById('pDescription').value = '';
   document.getElementById('pMaterial').value = '';
   document.getElementById('pSizes').value = '';
-  document.getElementById('pExtraImages').value = '';
+  document.getElementById('pExtraImageFiles').value = '';
+  document.getElementById('extraUploadStatus').textContent = '';
+  uploadedExtraImages = [];
+  renderExtraPreviews();
   document.getElementById('cancelEditBtn').style.display = 'none';
   document.getElementById('formMsg').textContent = '';
 }
@@ -278,9 +322,7 @@ function saveProduct(){
   const sizes = document.getElementById('pSizes').value.trim()
     ? document.getElementById('pSizes').value.split(',').map(s => s.trim()).filter(Boolean)
     : [];
-  const extraImages = document.getElementById('pExtraImages').value.trim()
-    ? document.getElementById('pExtraImages').value.split(',').map(s => s.trim()).filter(Boolean)
-    : [];
+  const extraImages = uploadedExtraImages.slice();
   const images = image ? [image, ...extraImages] : extraImages;
   const msg = document.getElementById('formMsg');
 
@@ -329,7 +371,8 @@ function editProduct(id, p){
   document.getElementById('pMaterial').value = p.material || '';
   document.getElementById('pSizes').value = Array.isArray(p.sizes) ? p.sizes.join(', ') : '';
   const extras = Array.isArray(p.images) ? p.images.filter(img => img !== p.image) : [];
-  document.getElementById('pExtraImages').value = extras.join(', ');
+  uploadedExtraImages = extras.slice();
+  renderExtraPreviews();
   document.getElementById('cancelEditBtn').style.display = 'inline-block';
   window.scrollTo({top:0, behavior:'smooth'});
 }
