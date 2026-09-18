@@ -53,9 +53,9 @@
   .card h2{font-family:'Archivo Black',sans-serif;font-size:20px;margin:0 0 18px;}
   .field{margin-bottom:16px;}
   .field label{display:block;font-size:13px;font-family:'IBM Plex Mono',monospace;margin-bottom:6px;color:var(--muted);}
-  .field input[type=text],.field input[type=number]{
+  .field input[type=text],.field input[type=number],.field textarea{
     width:100%;padding:10px;border:1.5px solid var(--line);border-radius:4px;
-    background:var(--canvas);color:var(--ink);font-size:14px;
+    background:var(--canvas);color:var(--ink);font-size:14px;font-family:'IBM Plex Sans',sans-serif;
   }
   .field input[type=color]{width:60px;height:40px;border:1.5px solid var(--line);border-radius:4px;padding:2px;background:var(--canvas);cursor:pointer;}
   .checkbox-row{display:flex;align-items:center;gap:8px;}
@@ -136,6 +136,28 @@
     <div class="field checkbox-row">
       <input type="checkbox" id="pCustom">
       <label style="margin:0;">Customer can request a custom design/text for this item</label>
+    </div>
+    <div class="field checkbox-row">
+      <input type="checkbox" id="pActive" checked>
+      <label style="margin:0;">Active (visible on website)</label>
+    </div>
+    <div class="field">
+      <label>Description (optional)</label>
+      <textarea id="pDescription" rows="2" placeholder="Short product description shown in detail view"></textarea>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Material (optional)</label>
+        <input type="text" id="pMaterial" placeholder="e.g. 100% cotton">
+      </div>
+      <div class="field">
+        <label>Sizes (optional, comma separated)</label>
+        <input type="text" id="pSizes" placeholder="S, M, L, XL">
+      </div>
+    </div>
+    <div class="field">
+      <label>Extra photo links (optional, comma separated)</label>
+      <input type="text" id="pExtraImages" placeholder="paste additional image URLs, comma separated">
     </div>
     <div class="actions-row">
       <button class="btn-primary" onclick="saveProduct()">Save product</button>
@@ -233,6 +255,11 @@ function resetForm(){
   document.getElementById('pColor').value = '#2F4858';
   document.getElementById('pOrder').value = 1;
   document.getElementById('pCustom').checked = false;
+  document.getElementById('pActive').checked = true;
+  document.getElementById('pDescription').value = '';
+  document.getElementById('pMaterial').value = '';
+  document.getElementById('pSizes').value = '';
+  document.getElementById('pExtraImages').value = '';
   document.getElementById('cancelEditBtn').style.display = 'none';
   document.getElementById('formMsg').textContent = '';
 }
@@ -245,6 +272,16 @@ function saveProduct(){
   const color = document.getElementById('pColor').value;
   const order = Number(document.getElementById('pOrder').value) || 0;
   const customisable = document.getElementById('pCustom').checked;
+  const active = document.getElementById('pActive').checked;
+  const description = document.getElementById('pDescription').value.trim();
+  const material = document.getElementById('pMaterial').value.trim();
+  const sizes = document.getElementById('pSizes').value.trim()
+    ? document.getElementById('pSizes').value.split(',').map(s => s.trim()).filter(Boolean)
+    : [];
+  const extraImages = document.getElementById('pExtraImages').value.trim()
+    ? document.getElementById('pExtraImages').value.split(',').map(s => s.trim()).filter(Boolean)
+    : [];
+  const images = image ? [image, ...extraImages] : extraImages;
   const msg = document.getElementById('formMsg');
 
   if(!name || !price){
@@ -253,7 +290,7 @@ function saveProduct(){
     return;
   }
 
-  const data = { name, price, badge, image, color, order, customisable };
+  const data = { name, price, badge, image, images, color, order, customisable, active, description, material, sizes };
   const promise = editingId
     ? db.collection('products').doc(editingId).update(data)
     : db.collection('products').add(data);
@@ -287,6 +324,12 @@ function editProduct(id, p){
   document.getElementById('pColor').value = /^#[0-9A-Fa-f]{6}$/.test(p.color) ? p.color : '#2F4858';
   document.getElementById('pOrder').value = p.order || 1;
   document.getElementById('pCustom').checked = !!p.customisable;
+  document.getElementById('pActive').checked = p.active !== false;
+  document.getElementById('pDescription').value = p.description || '';
+  document.getElementById('pMaterial').value = p.material || '';
+  document.getElementById('pSizes').value = Array.isArray(p.sizes) ? p.sizes.join(', ') : '';
+  const extras = Array.isArray(p.images) ? p.images.filter(img => img !== p.image) : [];
+  document.getElementById('pExtraImages').value = extras.join(', ');
   document.getElementById('cancelEditBtn').style.display = 'inline-block';
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -315,7 +358,7 @@ function loadProducts(){
           ${thumb}
           <div class="info">
             <h4>${p.name}</h4>
-            <div class="meta">${p.price} ${p.badge ? '· ' + p.badge : ''} ${p.customisable ? '· customisable' : ''} · order ${p.order}</div>
+            <div class="meta">${p.price} ${p.badge ? '· ' + p.badge : ''} ${p.customisable ? '· customisable' : ''} ${p.active === false ? '· <span style="color:var(--rust);">INACTIVE</span>' : ''} · order ${p.order}</div>
           </div>
           <div class="actions">
             <button onclick='editProduct("${doc.id}", ${JSON.stringify(p).replace(/'/g, "&apos;")})'>Edit</button>
