@@ -25,13 +25,8 @@
   "description": "Everyday clothing at honest prices, delivered across Bihar with Cash on Delivery.",
   "url": "https://krishkr9504-a11y.github.io/workshop/",
   "telephone": "+917870889030",
-  "areaServed": {
-    "@type": "State",
-    "name": "Bihar"
-  },
-  "sameAs": [
-    "https://www.instagram.com/_09_krish/"
-  ],
+  "areaServed": { "@type": "State", "name": "Bihar" },
+  "sameAs": ["https://www.instagram.com/_09_krish/"],
   "paymentAccepted": "Cash on Delivery"
 }
 </script>
@@ -42,157 +37,226 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <style>
   :root{
-    --canvas:#EAE3D3;
-    --ink:#211D17;
-    --rust:#C1442A;
-    --denim:#2F4858;
-    --card:#F5F1E6;
-    --line:#211D17;
-    --muted:#5B5346;
+    --canvas:#EAE3D3; --ink:#211D17; --rust:#C1442A; --denim:#2F4858;
+    --card:#F5F1E6; --line:#211D17; --muted:#5B5346;
   }
   html[data-theme="dark"]{
-    --canvas:#16130E;
-    --ink:#EFE8D8;
-    --rust:#E0632F;
-    --denim:#7FA8C0;
-    --card:#1D1A13;
-    --line:#EFE8D8;
-    --muted:#A79C86;
+    --canvas:#16130E; --ink:#EFE8D8; --rust:#E0632F; --denim:#7FA8C0;
+    --card:#1D1A13; --line:#EFE8D8; --muted:#A79C86;
   }
   *{box-sizing:border-box;}
   body{
-    margin:0;
-    background:var(--canvas);
-    color:var(--ink);
+    margin:0;background:var(--canvas);color:var(--ink);
     font-family:'IBM Plex Sans',sans-serif;
     transition:background .3s ease, color .3s ease;
   }
+  body.lock-scroll{overflow:hidden;}
   .wrap{max-width:1080px;margin:0 auto;padding:0 24px;}
   .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;}
+
+  /* ---------- opening animation ---------- */
+  #introLoader{
+    position:fixed;inset:0;background:var(--canvas);z-index:999;
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    transition:opacity .45s ease, transform .5s ease;
+  }
+  #introLoader.hide{opacity:0;transform:translateY(-100%);pointer-events:none;}
+  #introLoader .intro-word{
+    font-family:'Archivo Black',sans-serif;font-size:clamp(32px,8vw,64px);
+    letter-spacing:2px;display:flex;overflow:hidden;
+  }
+  #introLoader .intro-word span{
+    display:inline-block;opacity:0;transform:translateY(60%);
+    animation:letterUp .5s cubic-bezier(.2,.8,.2,1) forwards;
+  }
+  #introLoader .intro-line{
+    width:0;height:2px;background:var(--ink);margin-top:18px;
+    animation:lineGrow .5s ease forwards .55s;
+  }
+  @keyframes letterUp{ to{ opacity:1; transform:translateY(0); } }
+  @keyframes lineGrow{ to{ width:140px; } }
+
+  @media (prefers-reduced-motion: reduce){
+    #introLoader{display:none !important;}
+    *{animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important;}
+  }
 
   /* header */
-  header{
-    display:flex;justify-content:space-between;align-items:center;
-    padding:22px 0;border-bottom:2px solid var(--line);
-  }
-  .brand{
-    font-family:'Archivo Black',sans-serif;
-    font-size:24px;letter-spacing:1px;
-  }
+  header{display:flex;justify-content:space-between;align-items:center;padding:22px 0;border-bottom:2px solid var(--line);}
+  .brand{font-family:'Archivo Black',sans-serif;font-size:24px;letter-spacing:1px;}
   .brand span{color:var(--rust);}
   nav{display:flex;gap:20px;align-items:center;}
   nav a{color:var(--ink);text-decoration:none;font-size:15px;font-weight:500;}
   #themeToggle{
     background:none;border:2px solid var(--line);color:var(--ink);
     padding:7px 14px;border-radius:100px;font-family:'IBM Plex Mono',monospace;
-    font-size:13px;cursor:pointer;
+    font-size:13px;cursor:pointer;transition:transform .15s ease;
   }
+  #themeToggle:active{transform:scale(.94);}
 
   /* hero */
   .hero{padding:64px 0 56px;border-bottom:2px solid var(--line);}
   .tag-label{
-    display:inline-block;font-family:'IBM Plex Mono',monospace;
-    font-size:13px;color:var(--muted);border:1px dashed var(--muted);
-    padding:4px 10px;border-radius:3px;margin-bottom:18px;
+    display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);
+    border:1px dashed var(--muted);padding:4px 10px;border-radius:3px;margin-bottom:18px;
   }
-  h1.hero-h{
-    font-family:'Archivo Black',sans-serif;
-    font-size:clamp(40px,7vw,84px);
-    line-height:0.95;margin:0 0 22px;
-    max-width:780px;
-  }
+  h1.hero-h{font-family:'Archivo Black',sans-serif;font-size:clamp(40px,7vw,84px);line-height:0.95;margin:0 0 22px;max-width:780px;}
   .hero p{font-size:18px;max-width:480px;color:var(--muted);margin-bottom:28px;line-height:1.5;}
   .cta{
-    display:inline-block;background:var(--rust);color:#F5F1E6;
-    padding:14px 26px;border-radius:4px;text-decoration:none;
-    font-weight:600;font-size:15px;border:none;cursor:pointer;
+    display:inline-block;background:var(--rust);color:#F5F1E6;padding:14px 26px;border-radius:4px;
+    text-decoration:none;font-weight:600;font-size:15px;border:none;cursor:pointer;
+    transition:transform .15s ease;
   }
+  .cta:active{transform:scale(.97);}
 
   /* products */
   .section-head{padding:48px 0 20px;display:flex;justify-content:space-between;align-items:baseline;}
   .section-head h2{font-family:'Archivo Black',sans-serif;font-size:28px;margin:0;}
   .section-head p{color:var(--muted);margin:0;font-size:14px;}
-  .rack{
-    display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:20px;padding-bottom:56px;
-  }
+  .rack{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;padding-bottom:56px;}
+
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(16px); } to{ opacity:1; transform:translateY(0); } }
+
   .tag{
-    background:var(--card);border:1.5px dashed var(--line);
-    border-radius:6px;padding:16px;position:relative;
+    background:var(--card);border:1.5px dashed var(--line);border-radius:6px;padding:16px;position:relative;
+    cursor:pointer;transition:transform .18s ease, box-shadow .18s ease;
+    animation:fadeUp .5s ease both;
   }
-  .tag .hole{
-    width:14px;height:14px;border:1.5px solid var(--line);border-radius:50%;
-    position:absolute;top:14px;right:14px;background:var(--canvas);
-  }
+  .tag:hover{transform:translateY(-4px);box-shadow:0 10px 22px rgba(0,0,0,.12);}
+  .tag:active{transform:translateY(-1px) scale(.99);}
+  .tag:focus-visible{outline:3px solid var(--denim);outline-offset:3px;}
+  .tag .hole{width:14px;height:14px;border:1.5px solid var(--line);border-radius:50%;position:absolute;top:14px;right:14px;background:var(--canvas);}
+  .tag .swatch-wrap{width:100%;aspect-ratio:3/4;border-radius:4px;margin-bottom:12px;overflow:hidden;}
   .tag .swatch{
-    width:100%;aspect-ratio:3/4;border-radius:4px;margin-bottom:12px;
-    display:flex;align-items:center;justify-content:center;
+    width:100%;height:100%;display:flex;align-items:center;justify-content:center;
     font-family:'Archivo Black',sans-serif;color:#F5F1E6;font-size:15px;text-align:center;
+    transition:transform .35s ease;
   }
-  img.swatch{display:block;}
+  .tag:hover .swatch{transform:scale(1.06);}
+  img.swatch{display:block;object-fit:cover;}
   .tag h3{margin:0 0 4px;font-size:16px;}
   .tag .price{font-family:'IBM Plex Mono',monospace;color:var(--rust);font-size:15px;margin-bottom:12px;}
-  .tag button{
+  .tag button.order-btn{
     width:100%;background:none;border:1.5px solid var(--line);color:var(--ink);
     padding:9px;border-radius:4px;font-weight:600;font-size:13px;cursor:pointer;
+    transition:transform .12s ease, background .15s ease;
   }
-  .tag button:hover{background:var(--ink);color:var(--canvas);}
-  .badge{
-    display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;
-    background:var(--denim);color:#F5F1E6;padding:2px 8px;border-radius:3px;margin-bottom:8px;
-  }
+  .tag button.order-btn:hover{background:var(--ink);color:var(--canvas);}
+  .tag button.order-btn:active{transform:scale(.96);}
+  .badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--denim);color:#F5F1E6;padding:2px 8px;border-radius:3px;margin-bottom:8px;}
+
+  /* skeleton */
+  .skeleton-card{background:var(--card);border:1.5px dashed var(--line);border-radius:6px;padding:16px;}
+  .skeleton-box{border-radius:4px;background:linear-gradient(90deg, var(--card) 25%, rgba(150,140,120,.25) 37%, var(--card) 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite;}
+  .skeleton-img{width:100%;aspect-ratio:3/4;margin-bottom:12px;}
+  .skeleton-line{height:12px;margin-bottom:8px;width:70%;}
+  @keyframes shimmer{ 0%{background-position:100% 0;} 100%{background-position:0 0;} }
+
+  .retry-box{grid-column:1/-1;text-align:center;padding:30px 0;}
+  .retry-box button{margin-top:10px;background:var(--rust);color:#F5F1E6;border:none;padding:10px 20px;border-radius:4px;font-weight:600;cursor:pointer;}
 
   /* faq */
   .faq{border-top:2px solid var(--line);padding:48px 0;}
   .faq h2{font-family:'Archivo Black',sans-serif;font-size:28px;margin:0 0 20px;}
-  details{
-    border-bottom:1px solid var(--muted);padding:14px 0;
-  }
+  details{border-bottom:1px solid var(--muted);padding:14px 0;}
   summary{cursor:pointer;font-weight:600;font-size:16px;list-style:none;display:flex;justify-content:space-between;}
   summary::-webkit-details-marker{display:none;}
   summary:after{content:'+';font-family:'IBM Plex Mono',monospace;font-size:20px;}
   details[open] summary:after{content:'\2212';}
-  details p{color:var(--muted);margin:10px 0 0;line-height:1.5;font-size:15px;}
+  details p{color:var(--muted);margin:10px 0 0;line-height:1.5;font-size:15px;overflow:hidden;transition:max-height .22s ease, opacity .22s ease;}
 
-  /* order modal */
-  .overlay{
-    display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
-    align-items:center;justify-content:center;z-index:50;padding:20px;
-  }
+  /* shared modal overlay */
+  .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);align-items:center;justify-content:center;z-index:150;padding:16px;}
   .overlay.open{display:flex;}
   .modal{
     background:var(--card);border:2px solid var(--line);border-radius:8px;
     padding:28px;max-width:380px;width:100%;
+    animation:modalIn .25s cubic-bezier(.2,.8,.2,1) both;
   }
+  @keyframes modalIn{ from{opacity:0; transform:scale(.92) translateY(10px);} to{opacity:1; transform:scale(1) translateY(0);} }
   .modal h3{font-family:'Archivo Black',sans-serif;margin:0 0 14px;font-size:20px;}
   .modal label{display:block;font-size:13px;font-family:'IBM Plex Mono',monospace;margin:12px 0 5px;color:var(--muted);}
   .modal input,.modal textarea{
     width:100%;padding:10px;border:1.5px solid var(--line);border-radius:4px;
     background:var(--canvas);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;font-size:14px;
   }
+  .field-error{color:var(--rust);font-size:12px;margin-top:4px;display:none;}
+  .field-error.show{display:block;}
   .modal .actions{display:flex;gap:10px;margin-top:20px;}
-  .modal .actions button{flex:1;padding:11px;border-radius:4px;font-weight:600;cursor:pointer;font-size:14px;}
+  .modal .actions button{flex:1;padding:11px;border-radius:4px;font-weight:600;cursor:pointer;font-size:14px;transition:transform .12s ease;}
+  .modal .actions button:active{transform:scale(.96);}
   .btn-primary{background:var(--rust);color:#F5F1E6;border:none;}
+  .btn-primary:disabled{opacity:.5;cursor:not-allowed;}
   .btn-ghost{background:none;border:1.5px solid var(--line);color:var(--ink);}
+
+  .size-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .size-chip{
+    border:1.5px solid var(--line);background:none;color:var(--ink);padding:6px 14px;
+    border-radius:100px;font-size:13px;cursor:pointer;font-family:'IBM Plex Mono',monospace;
+  }
+  .size-chip.selected{background:var(--ink);color:var(--canvas);}
+
+  /* product detail modal */
+  #productOverlay{align-items:flex-start;overflow-y:auto;padding:20px 16px;}
+  .pd-modal{
+    background:var(--card);border:2px solid var(--line);border-radius:10px;max-width:720px;width:100%;
+    margin:auto;padding:0;overflow:hidden;position:relative;
+    animation:modalIn .28s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .pd-close{
+    position:absolute;top:14px;right:14px;background:var(--canvas);border:1.5px solid var(--line);
+    width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;z-index:5;
+  }
+  .pd-body{display:flex;flex-wrap:wrap;}
+  .pd-media{flex:1 1 300px;padding:20px;}
+  .pd-main-img{width:100%;aspect-ratio:3/4;border-radius:6px;overflow:hidden;margin-bottom:12px;background:var(--denim);display:flex;align-items:center;justify-content:center;}
+  .pd-main-img img{width:100%;height:100%;object-fit:cover;transition:opacity .2s ease;}
+  .pd-main-img .fallback-text{font-family:'Archivo Black',sans-serif;color:#F5F1E6;font-size:18px;text-align:center;padding:0 12px;}
+  .pd-thumbs{display:flex;gap:8px;flex-wrap:wrap;}
+  .pd-thumbs img{width:56px;height:56px;object-fit:cover;border-radius:4px;border:1.5px solid var(--line);cursor:pointer;opacity:.6;}
+  .pd-thumbs img.active{opacity:1;outline:2px solid var(--rust);}
+  .pd-info{flex:1 1 300px;padding:20px;border-left:1.5px dashed var(--line);}
+  .pd-info h2{font-family:'Archivo Black',sans-serif;font-size:24px;margin:6px 0 6px;}
+  .pd-info .price{font-family:'IBM Plex Mono',monospace;color:var(--rust);font-size:18px;margin-bottom:12px;}
+  .pd-info .desc{color:var(--muted);font-size:14px;line-height:1.5;margin-bottom:14px;}
+  .pd-meta-line{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .pd-actions{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+  .pd-actions button{padding:12px;border-radius:4px;font-weight:600;font-size:14px;cursor:pointer;transition:transform .12s ease;}
+  .pd-actions button:active{transform:scale(.97);}
+
+  .ask-panel{border-top:1.5px dashed var(--line);padding:16px 20px;display:none;}
+  .ask-panel.open{display:block;}
+  .chip-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
+  .ask-chip{border:1.5px solid var(--line);background:none;color:var(--ink);padding:6px 12px;border-radius:100px;font-size:12px;cursor:pointer;text-align:left;}
+  .ask-chip:hover{background:var(--denim);color:#F5F1E6;}
+
+  @media (max-width: 640px){
+    #productOverlay{padding:0;}
+    .pd-modal{border-radius:0;min-height:100vh;max-width:100%;}
+    .pd-body{flex-direction:column;}
+    .pd-info{border-left:none;border-top:1.5px dashed var(--line);}
+  }
 
   /* footer */
   footer{border-top:2px solid var(--line);padding:32px 0;margin-top:20px;}
-  .care-strip{
-    display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;
-    font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);
-  }
+  .care-strip{display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--muted);}
   .care-strip a{color:var(--ink);text-decoration:none;font-weight:600;}
 
-  /* whatsapp float */
   .wa-float{
-    position:fixed;bottom:22px;right:22px;background:#25D366;color:white;
-    width:54px;height:54px;border-radius:50%;display:flex;align-items:center;
-    justify-content:center;font-size:26px;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.3);
-    z-index:40;
+    position:fixed;bottom:22px;right:22px;background:#25D366;color:white;width:54px;height:54px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:26px;text-decoration:none;
+    box-shadow:0 4px 14px rgba(0,0,0,.3);z-index:40;transition:transform .15s ease;
   }
+  .wa-float:active{transform:scale(.92);}
 </style>
 </head>
-<body>
+<body class="lock-scroll">
+
+<div id="introLoader" aria-hidden="true">
+  <div class="intro-word" id="introWord"></div>
+  <div class="intro-line"></div>
+</div>
 
 <div class="wrap">
   <header>
@@ -214,11 +278,9 @@
 
   <div class="section-head">
     <h2>On the rack</h2>
-    <p class="mono">23 pieces · updated weekly</p>
+    <p class="mono" id="productCount">Loading pieces…</p>
   </div>
-  <div class="rack" id="products">
-    <p class="mono" style="color:var(--muted);grid-column:1/-1;">Loading products…</p>
-  </div>
+  <div class="rack" id="products"></div>
   <p class="mono" style="color:var(--muted);font-size:13px;margin-top:-30px;">↳ This grid loads live from Firestore — add a product in the admin panel and it appears here automatically.</p>
 
   <section class="faq" id="faq">
@@ -253,17 +315,65 @@
 
 <a class="wa-float" href="https://wa.me/917870889030" target="_blank" title="Chat on WhatsApp">💬</a>
 
-<div class="overlay" id="orderOverlay">
+<!-- ============ Product detail modal ============ -->
+<div class="overlay" id="productOverlay" role="dialog" aria-modal="true" aria-labelledby="pdName">
+  <div class="pd-modal">
+    <button class="pd-close" onclick="closeProductDetail()" aria-label="Close">✕</button>
+    <div class="pd-body">
+      <div class="pd-media">
+        <div class="pd-main-img" id="pdMainImgWrap"></div>
+        <div class="pd-thumbs" id="pdThumbs"></div>
+      </div>
+      <div class="pd-info">
+        <div id="pdBadge"></div>
+        <h2 id="pdName">Product name</h2>
+        <div class="price" id="pdPrice">₹0</div>
+        <p class="desc" id="pdDesc" style="display:none;"></p>
+        <div class="pd-meta-line" id="pdMaterial" style="display:none;"></div>
+        <div class="pd-meta-line" id="pdSizesLine" style="display:none;"></div>
+        <div class="pd-meta-line" id="pdCustomLine" style="display:none;">✎ Custom design/text available on request</div>
+        <div class="pd-meta-line">💵 Cash on Delivery available</div>
+        <div class="pd-meta-line">🚚 Delivered across Bihar</div>
+        <div class="pd-actions">
+          <button class="btn-primary" id="pdOrderBtn" onclick="orderFromDetail()">Order this T-shirt</button>
+          <button class="btn-ghost" onclick="toggleAskPanel()">Ask about this T-shirt</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ask-panel" id="askPanel">
+      <h3 style="font-family:'Archivo Black',sans-serif;font-size:16px;margin:0 0 8px;">Ask about <span id="askProductName"></span></h3>
+      <div class="chip-row" id="askChips"></div>
+      <textarea id="askText" rows="3" placeholder="Type your question…" oninput="updateAskButton()"></textarea>
+      <div class="modal .actions" style="display:flex;margin-top:12px;">
+        <button class="btn-primary" id="askSendBtn" style="width:100%;" disabled onclick="sendAskWhatsApp()">Ask on WhatsApp</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Order modal ============ -->
+<div class="overlay" id="orderOverlay" role="dialog" aria-modal="true" aria-labelledby="orderTitle">
   <div class="modal">
     <h3 id="orderTitle">Order this piece</h3>
     <label>Your name</label>
     <input id="custName" type="text" placeholder="e.g. Rahul Kumar">
+    <div class="field-error" id="nameError">Please enter your name.</div>
+
     <label>Phone number</label>
-    <input id="custPhone" type="tel" placeholder="10-digit mobile number">
+    <input id="custPhone" type="tel" placeholder="10-digit mobile number" maxlength="10">
+    <div class="field-error" id="phoneError">Enter a valid 10-digit Indian mobile number.</div>
+
     <label>Size</label>
+    <div id="sizeButtonsWrap" style="display:none;">
+      <div class="size-row" id="sizeButtons"></div>
+    </div>
     <input id="custSize" type="text" placeholder="S / M / L / XL">
+
     <label>Delivery address</label>
     <textarea id="custAddress" rows="2" placeholder="House no, street, city, pincode"></textarea>
+    <div class="field-error" id="addressError">Please enter your delivery address.</div>
+
     <div id="customDesignField" style="display:none;">
       <label>What do you want printed?</label>
       <textarea id="customDesign" rows="2" placeholder="Text, name, or design idea — we'll confirm the look over WhatsApp"></textarea>
@@ -287,52 +397,53 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const WA_NUMBER = "917870889030";
 
+let products = [];          // in-memory list of {id, ...data}
+let unsubscribeProducts = null;
 let currentProduct = '';
 let currentPrice = '';
 let currentIsCustom = false;
+let currentSizes = [];
+let selectedSize = '';
+let activeProductForAsk = null;
+let lastFocusedCard = null;
 
-function escapeHtml(str){
-  return String(str).replace(/'/g, "\\'");
-}
+function escapeHtml(str){ return String(str).replace(/'/g, "\\'"); }
+function esc(str){ return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-function renderProductCard(p){
-  const badgeHtml = p.badge ? `<span class="badge">${p.badge}</span>` : '';
-  const swatchBg = p.color || 'linear-gradient(135deg,#2F4858,#5B5346)';
-  const media = p.image
-    ? `<img src="${p.image}" class="swatch" style="object-fit:cover;color:transparent;" onerror="this.outerHTML='<div class=\\'swatch\\' style=\\'background:${swatchBg};\\'>${p.name}</div>';">`
-    : `<div class="swatch" style="background:${swatchBg};">${p.name}</div>`;
-  return `
-    <div class="tag">
-      <div class="hole"></div>
-      ${badgeHtml}
-      ${media}
-      <h3>${p.name}</h3>
-      <div class="price mono">${p.price}</div>
-      <button onclick="openOrder('${escapeHtml(p.name)}','${escapeHtml(p.price)}', ${!!p.customisable})">Order this</button>
-    </div>`;
-}
+/* ---------------- Opening animation ---------------- */
+(function playIntro(){
+  const loader = document.getElementById('introLoader');
+  const wordEl = document.getElementById('introWord');
+  const already = sessionStorage.getItem('workshopIntroShown');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function loadProducts(){
-  const rack = document.getElementById('products');
-  db.collection('products').orderBy('order').get()
-    .then(snapshot => {
-      if(snapshot.empty){
-        rack.innerHTML = '<p class="mono" style="color:var(--muted);grid-column:1/-1;">No products yet — add some from the admin panel.</p>';
-        return;
-      }
-      rack.innerHTML = '';
-      snapshot.forEach(doc => {
-        rack.insertAdjacentHTML('beforeend', renderProductCard(doc.data()));
-      });
-    })
-    .catch(err => {
-      console.error('Error loading products:', err);
-      rack.innerHTML = '<p class="mono" style="color:var(--muted);grid-column:1/-1;">Could not load products right now.</p>';
-    });
-}
-loadProducts();
+  if(already || reduced){
+    loader.style.display = 'none';
+    document.body.classList.remove('lock-scroll');
+    return;
+  }
+  const word = 'WORKSHOP';
+  word.split('').forEach((ch,i) => {
+    const span = document.createElement('span');
+    span.textContent = ch;
+    span.style.animationDelay = (i*0.045)+'s';
+    wordEl.appendChild(span);
+  });
+  sessionStorage.setItem('workshopIntroShown','1');
 
+  const finish = () => {
+    loader.classList.add('hide');
+    document.body.classList.remove('lock-scroll');
+    setTimeout(() => { loader.remove(); }, 500);
+  };
+  setTimeout(finish, 1300);
+  // hard fallback in case something goes wrong
+  setTimeout(() => { document.body.classList.remove('lock-scroll'); }, 2500);
+})();
+
+/* ---------------- Theme ---------------- */
 function toggleTheme(){
   const html = document.documentElement;
   const isDark = html.getAttribute('data-theme') === 'dark';
@@ -340,34 +451,285 @@ function toggleTheme(){
   document.getElementById('themeToggle').textContent = isDark ? '◐ Dark mode' : '☀ Light mode';
 }
 
-function openOrder(name, price, isCustom){
+/* ---------------- Product loading (real-time) ---------------- */
+function renderSkeletons(){
+  const rack = document.getElementById('products');
+  rack.innerHTML = Array.from({length:4}).map(() => `
+    <div class="skeleton-card">
+      <div class="skeleton-box skeleton-img"></div>
+      <div class="skeleton-box skeleton-line" style="width:80%;"></div>
+      <div class="skeleton-box skeleton-line" style="width:40%;"></div>
+    </div>`).join('');
+}
+
+function renderErrorState(){
+  const rack = document.getElementById('products');
+  rack.innerHTML = `<div class="retry-box">
+    <p class="mono" style="color:var(--muted);">Could not load products right now.</p>
+    <button onclick="loadProducts()">Retry</button>
+  </div>`;
+  document.getElementById('productCount').textContent = 'No pieces available';
+}
+
+function updateProductCount(count){
+  const el = document.getElementById('productCount');
+  if(count === 0) el.textContent = 'No pieces available';
+  else if(count === 1) el.textContent = '1 piece · updated weekly';
+  else el.textContent = `${count} pieces · updated weekly`;
+}
+
+function renderProductCard(p, index){
+  const badgeHtml = p.badge ? `<span class="badge">${esc(p.badge)}</span>` : '';
+  const swatchBg = p.color || 'linear-gradient(135deg,#2F4858,#5B5346)';
+  const img = (p.images && p.images[0]) || p.image || '';
+  const media = img
+    ? `<img src="${esc(img)}" class="swatch" loading="lazy" style="object-fit:cover;color:transparent;" onerror="this.outerHTML='<div class=\\'swatch\\' style=\\'background:${swatchBg};\\'>${esc(p.name)}</div>';">`
+    : `<div class="swatch" style="background:${swatchBg};">${esc(p.name)}</div>`;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const delay = reduced ? '' : `style="animation-delay:${Math.min(index,8)*60}ms"`;
+  return `
+    <div class="tag" ${delay} role="button" tabindex="0" aria-label="View ${esc(p.name)}"
+         onclick="handleCardClick(event,'${p.id}')"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openProductDetail('${p.id}');}">
+      <div class="hole"></div>
+      ${badgeHtml}
+      <div class="swatch-wrap">${media}</div>
+      <h3>${esc(p.name)}</h3>
+      <div class="price mono">${esc(p.price)}</div>
+      <button class="order-btn" onclick="event.stopPropagation(); openOrder('${escapeHtml(p.name)}','${escapeHtml(p.price)}', ${!!p.customisable}, '${p.id}')">Order this</button>
+    </div>`;
+}
+
+function handleCardClick(e, id){
+  lastFocusedCard = e.currentTarget;
+  openProductDetail(id);
+}
+
+function loadProducts(){
+  renderSkeletons();
+  if(unsubscribeProducts) unsubscribeProducts();
+  unsubscribeProducts = db.collection('products').orderBy('order')
+    .onSnapshot(snapshot => {
+      const rack = document.getElementById('products');
+      products = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if(data.active === false) return; // hide explicitly inactive products
+        products.push({ id: doc.id, ...data });
+      });
+      if(products.length === 0){
+        rack.innerHTML = '<p class="mono" style="color:var(--muted);grid-column:1/-1;">No products yet — add some from the admin panel.</p>';
+      } else {
+        rack.innerHTML = products.map((p,i) => renderProductCard(p,i)).join('');
+      }
+      updateProductCount(products.length);
+    }, err => {
+      console.error('Error loading products:', err);
+      renderErrorState();
+    });
+}
+loadProducts();
+
+/* ---------------- FAQ smooth expand/collapse ---------------- */
+document.querySelectorAll('.faq details').forEach(detailsEl => {
+  const summary = detailsEl.querySelector('summary');
+  const content = detailsEl.querySelector('p');
+  summary.addEventListener('click', e => {
+    e.preventDefault();
+    const isOpen = detailsEl.hasAttribute('open');
+    if(isOpen){
+      content.style.maxHeight = content.scrollHeight + 'px';
+      requestAnimationFrame(() => { content.style.maxHeight = '0px'; content.style.opacity = '0'; });
+      setTimeout(() => detailsEl.removeAttribute('open'), 200);
+    } else {
+      detailsEl.setAttribute('open','');
+      content.style.maxHeight = '0px';
+      content.style.opacity = '0';
+      requestAnimationFrame(() => {
+        content.style.maxHeight = content.scrollHeight + 'px';
+        content.style.opacity = '1';
+      });
+      setTimeout(() => { content.style.maxHeight = 'none'; }, 220);
+    }
+  });
+});
+
+/* ---------------- Product detail modal ---------------- */
+function openProductDetail(id){
+  const p = products.find(x => x.id === id);
+  if(!p) return;
+  activeProductForAsk = p;
+
+  document.getElementById('pdName').textContent = p.name || '';
+  document.getElementById('pdPrice').textContent = p.price || '';
+  document.getElementById('pdBadge').innerHTML = p.badge ? `<span class="badge">${esc(p.badge)}</span>` : '';
+
+  const descEl = document.getElementById('pdDesc');
+  if(p.description){ descEl.textContent = p.description; descEl.style.display = 'block'; }
+  else descEl.style.display = 'none';
+
+  const matEl = document.getElementById('pdMaterial');
+  if(p.material){ matEl.textContent = '🧵 Material: ' + p.material; matEl.style.display = 'block'; }
+  else matEl.style.display = 'none';
+
+  currentSizes = Array.isArray(p.sizes) ? p.sizes : [];
+  const sizesLine = document.getElementById('pdSizesLine');
+  if(currentSizes.length){ sizesLine.textContent = '📏 Sizes: ' + currentSizes.join(', '); sizesLine.style.display = 'block'; }
+  else sizesLine.style.display = 'none';
+
+  document.getElementById('pdCustomLine').style.display = p.customisable ? 'block' : 'none';
+
+  // images
+  const images = (p.images && p.images.length) ? p.images : (p.image ? [p.image] : []);
+  const mainWrap = document.getElementById('pdMainImgWrap');
+  const thumbs = document.getElementById('pdThumbs');
+  const swatchBg = p.color || 'linear-gradient(135deg,#2F4858,#5B5346)';
+
+  function showImage(url){
+    if(url){
+      mainWrap.innerHTML = `<img src="${esc(url)}" alt="${esc(p.name)}" onerror="this.parentElement.style.background='${swatchBg}';this.remove();">`;
+    } else {
+      mainWrap.style.background = swatchBg;
+      mainWrap.innerHTML = `<div class="fallback-text">${esc(p.name)}</div>`;
+    }
+  }
+  showImage(images[0]);
+
+  if(images.length > 1){
+    thumbs.style.display = 'flex';
+    thumbs.innerHTML = images.map((img,i) => `<img src="${esc(img)}" class="${i===0?'active':''}" loading="lazy" onclick="pdSelectThumb(this,'${esc(img)}')">`).join('');
+  } else {
+    thumbs.innerHTML = '';
+  }
+
+  document.getElementById('askPanel').classList.remove('open');
+  document.getElementById('askText').value = '';
+  updateAskButton();
+
+  const overlay = document.getElementById('productOverlay');
+  overlay.classList.add('open');
+  document.body.classList.add('lock-scroll');
+  document.getElementById('pdName').focus?.();
+  document.addEventListener('keydown', pdEscHandler);
+}
+function pdSelectThumb(el, url){
+  document.querySelectorAll('.pd-thumbs img').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pdMainImgWrap').innerHTML = `<img src="${esc(url)}" alt="">`;
+}
+function pdEscHandler(e){ if(e.key === 'Escape') closeProductDetail(); }
+function closeProductDetail(){
+  document.getElementById('productOverlay').classList.remove('open');
+  document.body.classList.remove('lock-scroll');
+  document.removeEventListener('keydown', pdEscHandler);
+  if(lastFocusedCard) lastFocusedCard.focus();
+}
+document.getElementById('productOverlay').addEventListener('click', e => {
+  if(e.target.id === 'productOverlay') closeProductDetail();
+});
+
+function orderFromDetail(){
+  const p = activeProductForAsk;
+  if(!p) return;
+  closeProductDetail();
+  openOrder(p.name, p.price, !!p.customisable, p.id);
+}
+
+/* ---------------- Ask about product ---------------- */
+const ASK_QUESTIONS = [
+  'Which sizes are available?',
+  'Can I customize this design?',
+  'What is the fabric?',
+  'Can the print be changed?',
+  'How long will delivery take?'
+];
+function toggleAskPanel(){
+  const panel = document.getElementById('askPanel');
+  panel.classList.toggle('open');
+  if(panel.classList.contains('open')){
+    document.getElementById('askProductName').textContent = activeProductForAsk?.name || '';
+    document.getElementById('askChips').innerHTML = ASK_QUESTIONS.map(q =>
+      `<button class="ask-chip" onclick="pickAskChip('${escapeHtml(q)}')">${esc(q)}</button>`).join('');
+  }
+}
+function pickAskChip(q){
+  document.getElementById('askText').value = q;
+  updateAskButton();
+}
+function updateAskButton(){
+  const val = document.getElementById('askText').value.trim();
+  document.getElementById('askSendBtn').disabled = val.length === 0;
+}
+function sendAskWhatsApp(){
+  const p = activeProductForAsk;
+  const question = document.getElementById('askText').value.trim();
+  if(!p || !question) return;
+  const msg = `Hello WORKSHOP, I have a question about "${p.name}" priced at ${p.price}.%0A%0A${encodeURIComponent(question)}%0A%0A(Ref: ${p.id})`;
+  window.open(`https://wa.me/${WA_NUMBER}?text=${msg}`, '_blank');
+}
+
+/* ---------------- Order flow ---------------- */
+function openOrder(name, price, isCustom, productId){
   currentProduct = name;
   currentPrice = price;
   currentIsCustom = !!isCustom;
+  const p = products.find(x => x.id === productId);
+  currentSizes = (p && Array.isArray(p.sizes)) ? p.sizes : [];
+  selectedSize = '';
+
   document.getElementById('orderTitle').textContent = 'Order: ' + name;
   document.getElementById('customDesignField').style.display = currentIsCustom ? 'block' : 'none';
+
+  const sizeWrap = document.getElementById('sizeButtonsWrap');
+  const sizeInput = document.getElementById('custSize');
+  if(currentSizes.length){
+    sizeWrap.style.display = 'block';
+    sizeInput.style.display = 'none';
+    document.getElementById('sizeButtons').innerHTML = currentSizes.map(s =>
+      `<button type="button" class="size-chip" onclick="pickSize(this,'${esc(s)}')">${esc(s)}</button>`).join('');
+  } else {
+    sizeWrap.style.display = 'none';
+    sizeInput.style.display = 'block';
+    sizeInput.value = '';
+  }
+
+  ['nameError','phoneError','addressError'].forEach(id => document.getElementById(id).classList.remove('show'));
+  document.getElementById('custName').value = '';
+  document.getElementById('custPhone').value = '';
+  document.getElementById('custAddress').value = '';
+
   document.getElementById('orderOverlay').classList.add('open');
+  document.body.classList.add('lock-scroll');
+}
+function pickSize(el, size){
+  selectedSize = size;
+  document.querySelectorAll('.size-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
 }
 function closeOrder(){
   document.getElementById('orderOverlay').classList.remove('open');
+  if(!document.getElementById('productOverlay').classList.contains('open')){
+    document.body.classList.remove('lock-scroll');
+  }
 }
 function sendOrder(){
   const name = document.getElementById('custName').value.trim();
   const phone = document.getElementById('custPhone').value.trim();
-  const size = document.getElementById('custSize').value.trim();
+  const size = currentSizes.length ? selectedSize : document.getElementById('custSize').value.trim();
   const address = document.getElementById('custAddress').value.trim();
+  const phoneValid = /^[6-9]\d{9}$/.test(phone);
 
-  if(!name || !phone || !address){
-    alert('Please fill your name, phone, and address.');
-    return;
-  }
+  document.getElementById('nameError').classList.toggle('show', !name);
+  document.getElementById('phoneError').classList.toggle('show', !phoneValid);
+  document.getElementById('addressError').classList.toggle('show', !address);
+  if(!name || !phoneValid || !address) return;
 
   const design = document.getElementById('customDesign').value.trim();
   const designLine = currentIsCustom ? `%0ACustom design: ${encodeURIComponent(design||'Not specified')}` : '';
 
   const message = `New order from WORKSHOP site:%0A%0AProduct: ${encodeURIComponent(currentProduct)}%0APrice: ${encodeURIComponent(currentPrice)}%0ASize: ${encodeURIComponent(size||'Not specified')}${designLine}%0A%0ACustomer: ${encodeURIComponent(name)}%0APhone: ${encodeURIComponent(phone)}%0AAddress: ${encodeURIComponent(address)}`;
 
-  window.open(`https://wa.me/917870889030?text=${message}`, '_blank');
+  window.open(`https://wa.me/${WA_NUMBER}?text=${message}`, '_blank');
   closeOrder();
 }
 </script>
