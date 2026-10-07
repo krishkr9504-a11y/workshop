@@ -51,14 +51,71 @@
   }
   *{box-sizing:border-box;}
   body{
-    margin:0;background:var(--canvas);color:var(--ink);
+    margin:0;color:var(--ink);
     font-family:'IBM Plex Sans',sans-serif;
-    transition:background .3s ease, color .3s ease;
+    transition:color .3s ease;
   }
   body.lock-scroll{overflow:hidden;}
-  .wrap{max-width:1080px;margin:0 auto;padding:0 24px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px;position:relative;z-index:1;}
   .mono{font-family:'IBM Plex Mono',monospace;}
   button{font-family:inherit;}
+
+  /* ---------- background layers ---------- */
+  .bg-layer{position:fixed;inset:0;background:var(--canvas);z-index:-2;transition:background .3s ease;}
+  .floating-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;}
+  .floating-bg span{
+    position:absolute;bottom:-10vh;opacity:0;will-change:transform,opacity;
+    animation-name:floatUp;animation-timing-function:linear;animation-iteration-count:infinite;
+  }
+  @keyframes floatUp{
+    0%{transform:translateY(0) translateX(0) rotate(0deg); opacity:0;}
+    8%{opacity:.16;}
+    92%{opacity:.16;}
+    100%{transform:translateY(-120vh) translateX(var(--drift,20px)) rotate(18deg); opacity:0;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .floating-bg{display:none;}
+  }
+
+  /* ---------- pages ---------- */
+  .page{display:none;animation:pageIn .35s ease both;}
+  .page.active{display:block;}
+  @keyframes pageIn{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ---------- search ---------- */
+  .search-row{margin:0 0 20px;position:relative;}
+  .search-row input{
+    width:100%;padding:12px 14px 12px 40px;border:1.5px solid var(--line);border-radius:6px;
+    background:var(--card);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;font-size:14px;
+  }
+  .search-row .search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:.6;font-size:15px;}
+  .no-results{grid-column:1/-1;color:var(--muted);font-family:'IBM Plex Mono',monospace;padding:30px 0;text-align:center;}
+
+  /* ---------- reviews ---------- */
+  .review-form{background:var(--card);border:1.5px dashed var(--line);border-radius:8px;padding:20px;margin-bottom:30px;}
+  .star-row{display:flex;gap:4px;margin:8px 0 4px;}
+  .star-row button{background:none;border:none;font-size:26px;cursor:pointer;opacity:.35;padding:0;line-height:1;transition:transform .1s ease;}
+  .star-row button.filled{opacity:1;}
+  .star-row button:active{transform:scale(1.2);}
+  .review-card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:16px;margin-bottom:12px;}
+  .review-card .stars{color:var(--rust);font-size:14px;margin-bottom:6px;}
+  .review-card .rname{font-weight:600;font-size:14px;}
+  .review-card .rtext{color:var(--muted);font-size:14px;margin-top:6px;line-height:1.5;}
+  .review-card .rdate{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);float:right;}
+
+  /* ---------- nav / mobile ---------- */
+  .hamburger{display:none;background:none;border:2px solid var(--line);border-radius:6px;width:40px;height:36px;cursor:pointer;color:var(--ink);font-size:16px;}
+  @media (max-width: 760px){
+    nav.main-nav{
+      position:fixed;top:0;right:0;height:100vh;width:min(78vw,300px);background:var(--card);
+      border-left:2px solid var(--line);flex-direction:column;align-items:flex-start;
+      padding:80px 24px 24px;gap:22px;transform:translateX(100%);transition:transform .25s ease;z-index:120;
+    }
+    nav.main-nav.open{transform:translateX(0);}
+    .hamburger{display:block;}
+    .nav-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:110;}
+    .nav-backdrop.open{display:block;}
+  }
 
   /* ---------- opening animation ---------- */
   #introLoader{
@@ -259,62 +316,108 @@
 </head>
 <body class="lock-scroll">
 
+<div class="bg-layer"></div>
+<div class="floating-bg" id="floatingBg" aria-hidden="true"></div>
+
 <div id="introLoader" aria-hidden="true">
   <div class="intro-word" id="introWord"></div>
   <div class="intro-line"></div>
 </div>
 
+<div class="nav-backdrop" id="navBackdrop" onclick="closeMobileNav()"></div>
+
 <div class="wrap">
   <header>
     <div class="brand"><img src="logo.png" alt="WORKSHOP logo" class="brand-logo">WORK<span>SHOP</span></div>
-    <nav>
-      <a href="#products">Products</a>
-      <a href="#faq">FAQ</a>
-      <a href="#contact">Contact</a>
+    <button class="hamburger" id="hamburgerBtn" onclick="toggleMobileNav()" aria-label="Menu">☰</button>
+    <nav class="main-nav" id="mainNav">
+      <a href="#home" data-page="home">Home</a>
+      <a href="#products" data-page="products">Products</a>
+      <a href="#reviews" data-page="reviews">Reviews</a>
+      <a href="#faq" data-page="faq">FAQ</a>
+      <a href="#contact" data-page="contact">Contact</a>
       <button id="themeToggle" onclick="toggleTheme()">◐ Dark mode</button>
     </nav>
   </header>
 
-  <section class="hero">
-    <span class="tag-label mono">DELIVERING ACROSS BIHAR — COD AVAILABLE</span>
-    <h1 class="hero-h">Cut, stitched,<br>and shipped<br>to your door.</h1>
-    <p>Everyday clothing made without the markup. Pick a piece, fill in your details, and we'll confirm your order over WhatsApp — no card, no account needed.</p>
-    <a href="#products" class="cta">Browse the rack</a>
-  </section>
-
-  <div class="section-head">
-    <h2>On the rack</h2>
-    <p class="mono" id="productCount">Loading pieces…</p>
+  <!-- ===================== HOME PAGE ===================== -->
+  <div class="page" id="page-home">
+    <section class="hero">
+      <span class="tag-label mono">DELIVERING ACROSS BIHAR — COD AVAILABLE</span>
+      <h1 class="hero-h">Cut, stitched,<br>and shipped<br>to your door.</h1>
+      <p>Everyday clothing made without the markup. Pick a piece, fill in your details, and we'll confirm your order over WhatsApp — no card, no account needed.</p>
+      <a href="#products" data-page="products" class="cta nav-link">Browse the rack</a>
+    </section>
   </div>
-  <div class="rack" id="products"></div>
-  <p class="mono" style="color:var(--muted);font-size:13px;margin-top:-30px;">↳ This grid loads live from Firestore — add a product in the admin panel and it appears here automatically.</p>
 
-  <section class="faq" id="faq">
-    <h2>Before you order</h2>
-    <details open>
-      <summary>How do I pay?</summary>
-      <p>Cash on Delivery only, right now. You pay the delivery person when your order arrives — nothing upfront.</p>
-    </details>
-    <details>
-      <summary>How will I know my order is confirmed?</summary>
-      <p>After you fill the order form, WhatsApp opens with your order details pre-filled. Send it, and we confirm within a few hours.</p>
-    </details>
-    <details>
-      <summary>What are the sizes available?</summary>
-      <p>Most pieces come in S–XL. Exact sizing is listed on each product before you order.</p>
-    </details>
-    <details>
-      <summary>Where all do you deliver?</summary>
-      <p>We deliver across all of Bihar — Patna, Gaya, Muzaffarpur, Bhagalpur, and everywhere in between. Delivery usually takes 3–6 working days depending on your city.</p>
-    </details>
-  </section>
+  <!-- ===================== PRODUCTS PAGE ===================== -->
+  <div class="page" id="page-products">
+    <div class="section-head">
+      <h2>On the rack</h2>
+      <p class="mono" id="productCount">Loading pieces…</p>
+    </div>
+    <div class="search-row">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search products…" oninput="handleSearch()">
+    </div>
+    <div class="rack" id="products"></div>
+    <p class="mono" style="color:var(--muted);font-size:13px;margin-top:10px;">↳ This grid loads live from Firestore — add a product in the admin panel and it appears here automatically.</p>
+  </div>
 
-  <footer id="contact">
+  <!-- ===================== REVIEWS PAGE ===================== -->
+  <div class="page" id="page-reviews">
+    <div class="section-head"><h2>Customer reviews</h2></div>
+    <div class="review-form">
+      <label class="mono" style="font-size:13px;color:var(--muted);">Your name</label><br>
+      <input type="text" id="revName" placeholder="e.g. Priya Kumari" style="width:100%;padding:10px;border:1.5px solid var(--line);border-radius:4px;background:var(--canvas);color:var(--ink);margin:6px 0 10px;">
+      <div class="mono" style="font-size:13px;color:var(--muted);">Rating</div>
+      <div class="star-row" id="starRow"></div>
+      <textarea id="revText" rows="3" placeholder="How was your order?" style="width:100%;padding:10px;border:1.5px solid var(--line);border-radius:4px;background:var(--canvas);color:var(--ink);margin-top:10px;"></textarea>
+      <div class="field-error" id="revError">Please add your name, a rating, and a short review.</div>
+      <button class="btn-primary" style="margin-top:12px;padding:11px 20px;border:none;border-radius:4px;cursor:pointer;" onclick="submitReview()">Submit review</button>
+      <span class="mono" id="revMsg" style="margin-left:10px;font-size:13px;"></span>
+    </div>
+    <div id="reviewsList"><p class="mono" style="color:var(--muted);">Loading reviews…</p></div>
+  </div>
+
+  <!-- ===================== FAQ PAGE ===================== -->
+  <div class="page" id="page-faq">
+    <section class="faq" style="border-top:none;padding-top:0;">
+      <h2>Before you order</h2>
+      <details open>
+        <summary>How do I pay?</summary>
+        <p>Cash on Delivery only, right now. You pay the delivery person when your order arrives — nothing upfront.</p>
+      </details>
+      <details>
+        <summary>How will I know my order is confirmed?</summary>
+        <p>After you fill the order form, WhatsApp opens with your order details pre-filled. Send it, and we confirm within a few hours.</p>
+      </details>
+      <details>
+        <summary>What are the sizes available?</summary>
+        <p>Most pieces come in S–XL. Exact sizing is listed on each product before you order.</p>
+      </details>
+      <details>
+        <summary>Where all do you deliver?</summary>
+        <p>We deliver across all of Bihar — Patna, Gaya, Muzaffarpur, Bhagalpur, and everywhere in between. Delivery usually takes 3–6 working days depending on your city.</p>
+      </details>
+    </section>
+  </div>
+
+  <!-- ===================== CONTACT PAGE ===================== -->
+  <div class="page" id="page-contact">
+    <div class="section-head"><h2>Get in touch</h2></div>
+    <p style="color:var(--muted);max-width:480px;line-height:1.6;">Questions about an order, sizing, or anything else — reach us directly. We usually reply within a few hours.</p>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:20px;max-width:360px;">
+      <a href="tel:7870889030" class="mono" style="color:var(--ink);text-decoration:none;font-size:16px;">📞 787 088 9030</a>
+      <a href="https://wa.me/917870889030" target="_blank" class="mono" style="color:var(--ink);text-decoration:none;font-size:16px;">💬 Chat on WhatsApp</a>
+      <a href="https://www.instagram.com/_09_krish/" target="_blank" class="mono" style="color:var(--ink);text-decoration:none;font-size:16px;">📷 @_09_krish</a>
+    </div>
+  </div>
+
+  <footer>
     <div class="care-strip">
       <span>WORKSHOP — clothing made simple</span>
-      <a href="tel:7870889030">📞 787 088 9030</a>
-      <a href="https://www.instagram.com/_09_krish/" target="_blank">📷 @_09_krish</a>
-      <span>© 2026 WORKSHOP</span>
+      <span class="mono">© 2026 WORKSHOP</span>
     </div>
   </footer>
 </div>
@@ -414,6 +517,9 @@ let currentSizes = [];
 let selectedSize = '';
 let activeProductForAsk = null;
 let lastFocusedCard = null;
+let searchQuery = '';
+let selectedRating = 0;
+let unsubscribeReviews = null;
 
 function escapeHtml(str){ return String(str).replace(/'/g, "\\'"); }
 function esc(str){ return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -455,6 +561,147 @@ function toggleTheme(){
   const isDark = html.getAttribute('data-theme') === 'dark';
   html.setAttribute('data-theme', isDark ? 'light' : 'dark');
   document.getElementById('themeToggle').textContent = isDark ? '◐ Dark mode' : '☀ Light mode';
+}
+
+/* ---------------- Page routing ---------------- */
+const PAGES = ['home','products','reviews','faq','contact'];
+function showPage(name, skipScroll){
+  if(!PAGES.includes(name)) name = 'home';
+  PAGES.forEach(p => document.getElementById('page-'+p).classList.toggle('active', p === name));
+  document.querySelectorAll('nav.main-nav a[data-page]').forEach(a => {
+    a.style.opacity = a.dataset.page === name ? '1' : '.65';
+    a.style.borderBottom = a.dataset.page === name ? '2px solid var(--rust)' : 'none';
+  });
+  if(location.hash !== '#'+name) history.replaceState(null,'','#'+name);
+  if(!skipScroll) window.scrollTo({top:0, behavior:'instant' in window ? 'instant' : 'auto'});
+  closeMobileNav();
+  if(name === 'reviews') loadReviews();
+}
+document.querySelectorAll('[data-page]').forEach(el => {
+  el.addEventListener('click', e => {
+    e.preventDefault();
+    showPage(el.dataset.page);
+  });
+});
+window.addEventListener('popstate', () => showPage((location.hash||'#home').slice(1), true));
+showPage((location.hash||'#home').slice(1), true);
+
+function toggleMobileNav(){
+  document.getElementById('mainNav').classList.toggle('open');
+  document.getElementById('navBackdrop').classList.toggle('open');
+}
+function closeMobileNav(){
+  document.getElementById('mainNav').classList.remove('open');
+  document.getElementById('navBackdrop').classList.remove('open');
+}
+
+/* ---------------- Click sound (subtle, synthesized — no external file) ---------------- */
+let audioCtx;
+function playClickSound(){
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(680, audioCtx.currentTime);
+    g.gain.setValueAtTime(0.045, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.09);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    o.stop(audioCtx.currentTime + 0.1);
+  }catch(e){ /* audio not available, fail silently */ }
+}
+document.addEventListener('click', e => {
+  if(e.target.closest('button, a, .tag, summary, .star-row button')) playClickSound();
+}, true);
+
+/* ---------------- Floating clothes background ---------------- */
+(function initFloatingBg(){
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduced) return;
+  const container = document.getElementById('floatingBg');
+  const icons = ['👕','👖','🧥','👔','🧦','👗'];
+  const count = window.innerWidth < 600 ? 5 : 8;
+  for(let i=0;i<count;i++){
+    const span = document.createElement('span');
+    span.textContent = icons[i % icons.length];
+    span.style.left = Math.random()*94 + '%';
+    span.style.fontSize = (20 + Math.random()*22) + 'px';
+    span.style.setProperty('--drift', (Math.random()*60-30)+'px');
+    span.style.animationDuration = (16 + Math.random()*16) + 's';
+    span.style.animationDelay = (Math.random()*18) + 's';
+    container.appendChild(span);
+  }
+})();
+
+/* ---------------- Search ---------------- */
+function handleSearch(){
+  searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+  renderProductGrid();
+}
+
+/* ---------------- Reviews ---------------- */
+function renderStarPicker(){
+  const row = document.getElementById('starRow');
+  row.innerHTML = [1,2,3,4,5].map(n =>
+    `<button type="button" class="${n<=selectedRating?'filled':''}" onclick="setRating(${n})">★</button>`).join('');
+}
+function setRating(n){ selectedRating = n; renderStarPicker(); }
+renderStarPicker();
+
+function submitReview(){
+  const name = document.getElementById('revName').value.trim();
+  const text = document.getElementById('revText').value.trim();
+  const errorEl = document.getElementById('revError');
+  const msgEl = document.getElementById('revMsg');
+  if(!name || !text || selectedRating === 0){
+    errorEl.classList.add('show');
+    return;
+  }
+  errorEl.classList.remove('show');
+  msgEl.style.color = 'var(--muted)';
+  msgEl.textContent = 'Submitting…';
+  db.collection('reviews').add({
+    name, text, rating: selectedRating,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    msgEl.style.color = 'var(--denim)';
+    msgEl.textContent = 'Thanks for your review!';
+    document.getElementById('revName').value = '';
+    document.getElementById('revText').value = '';
+    selectedRating = 0;
+    renderStarPicker();
+  }).catch(err => {
+    msgEl.style.color = 'var(--rust)';
+    msgEl.textContent = 'Could not submit — try again.';
+  });
+}
+
+function loadReviews(){
+  if(unsubscribeReviews) return; // already listening
+  const list = document.getElementById('reviewsList');
+  unsubscribeReviews = db.collection('reviews').orderBy('createdAt','desc').limit(50)
+    .onSnapshot(snapshot => {
+      if(snapshot.empty){
+        list.innerHTML = '<p class="mono" style="color:var(--muted);">No reviews yet — be the first!</p>';
+        return;
+      }
+      list.innerHTML = snapshot.docs.map(doc => {
+        const r = doc.data();
+        const stars = '★'.repeat(r.rating||0) + '☆'.repeat(5-(r.rating||0));
+        const date = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('en-IN', {day:'numeric',month:'short'}) : '';
+        return `<div class="review-card">
+          <span class="rdate mono">${date}</span>
+          <div class="rname">${esc(r.name)}</div>
+          <div class="stars">${stars}</div>
+          <div class="rtext">${esc(r.text)}</div>
+        </div>`;
+      }).join('');
+    }, err => {
+      console.error('reviews load error', err);
+      list.innerHTML = '<p class="mono" style="color:var(--muted);">Could not load reviews right now.</p>';
+    });
 }
 
 /* ---------------- Product loading (real-time) ---------------- */
@@ -511,24 +758,33 @@ function handleCardClick(e, id){
   openProductDetail(id);
 }
 
+function renderProductGrid(){
+  const rack = document.getElementById('products');
+  const q = searchQuery;
+  const filtered = q ? products.filter(p => (p.name||'').toLowerCase().includes(q)) : products;
+
+  if(products.length === 0){
+    rack.innerHTML = '<p class="mono" style="color:var(--muted);grid-column:1/-1;">No products yet — add some from the admin panel.</p>';
+  } else if(filtered.length === 0){
+    rack.innerHTML = `<p class="no-results mono">No products match "${esc(q)}".</p>`;
+  } else {
+    rack.innerHTML = filtered.map((p,i) => renderProductCard(p,i)).join('');
+  }
+  updateProductCount(filtered.length);
+}
+
 function loadProducts(){
   renderSkeletons();
   if(unsubscribeProducts) unsubscribeProducts();
   unsubscribeProducts = db.collection('products').orderBy('order')
     .onSnapshot(snapshot => {
-      const rack = document.getElementById('products');
       products = [];
       snapshot.forEach(doc => {
         const data = doc.data();
         if(data.active === false) return; // hide explicitly inactive products
         products.push({ id: doc.id, ...data });
       });
-      if(products.length === 0){
-        rack.innerHTML = '<p class="mono" style="color:var(--muted);grid-column:1/-1;">No products yet — add some from the admin panel.</p>';
-      } else {
-        rack.innerHTML = products.map((p,i) => renderProductCard(p,i)).join('');
-      }
-      updateProductCount(products.length);
+      renderProductGrid();
     }, err => {
       console.error('Error loading products:', err);
       renderErrorState();
