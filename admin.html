@@ -155,6 +155,16 @@
         <input type="text" id="pSizes" placeholder="S, M, L, XL">
       </div>
     </div>
+    <div class="row2">
+      <div class="field">
+        <label>Original price (optional, shows discount)</label>
+        <input type="text" id="pOrigPrice" placeholder="e.g. ₹999">
+      </div>
+      <div class="field">
+        <label>Sold-out sizes (optional, comma separated)</label>
+        <input type="text" id="pSoldOut" placeholder="e.g. XL">
+      </div>
+    </div>
     <div class="field">
       <label>Extra photos (optional)</label>
       <input type="file" id="pExtraImageFiles" accept="image/*" multiple onchange="handleExtraImagesUpload(this)">
@@ -300,6 +310,8 @@ function resetForm(){
   document.getElementById('pDescription').value = '';
   document.getElementById('pMaterial').value = '';
   document.getElementById('pSizes').value = '';
+  document.getElementById('pOrigPrice').value = '';
+  document.getElementById('pSoldOut').value = '';
   document.getElementById('pExtraImageFiles').value = '';
   document.getElementById('extraUploadStatus').textContent = '';
   uploadedExtraImages = [];
@@ -319,6 +331,8 @@ function saveProduct(){
   const active = document.getElementById('pActive').checked;
   const description = document.getElementById('pDescription').value.trim();
   const material = document.getElementById('pMaterial').value.trim();
+  const originalPrice = document.getElementById('pOrigPrice').value.trim();
+  const soldOutSizes = document.getElementById('pSoldOut').value.split(',').map(s => s.trim()).filter(Boolean);
   const sizes = document.getElementById('pSizes').value.trim()
     ? document.getElementById('pSizes').value.split(',').map(s => s.trim()).filter(Boolean)
     : [];
@@ -332,7 +346,7 @@ function saveProduct(){
     return;
   }
 
-  const data = { name, price, badge, image, images, color, order, customisable, active, description, material, sizes };
+  const data = { name, price, badge, image, images, color, order, customisable, active, description, material, sizes, originalPrice, soldOutSizes };
   const promise = editingId
     ? db.collection('products').doc(editingId).update(data)
     : db.collection('products').add(data);
@@ -370,6 +384,8 @@ function editProduct(id, p){
   document.getElementById('pDescription').value = p.description || '';
   document.getElementById('pMaterial').value = p.material || '';
   document.getElementById('pSizes').value = Array.isArray(p.sizes) ? p.sizes.join(', ') : '';
+  document.getElementById('pOrigPrice').value = p.originalPrice || '';
+  document.getElementById('pSoldOut').value = Array.isArray(p.soldOutSizes) ? p.soldOutSizes.join(', ') : '';
   const extras = Array.isArray(p.images) ? p.images.filter(img => img !== p.image) : [];
   uploadedExtraImages = extras.slice();
   renderExtraPreviews();
